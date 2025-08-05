@@ -1,0 +1,26 @@
+{
+  "name": "agi-fast-ts",
+  "version": "1.0.0",
+  "description": "Modern TypeScript AGI server for Asterisk",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "bun run --watch src/enhanced-example.ts",
+    "tts": "bun run --watch tts-example.ts",
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "type-check": "tsc --noEmit",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
+  },
+  "keywords": ["agi", "asterisk", "typescript", "telephony"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "gtts": "^0.2.1"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "@types/node": "latest",
+    "typescript": "latest"
+  }
+}
