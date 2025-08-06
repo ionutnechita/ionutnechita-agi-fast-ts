@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { AGIContext as IAGIContext, AGIVariables, AGIResponse } from './types';
-import { DevModeManager, AGIMockResponses } from './dev-utils';
+import { AGIMockResponses } from './dev-utils';
 
 /**
  * Mock AGI Context that simulates AGI functionality without real connections
@@ -20,12 +20,12 @@ export class MockAGIContext extends EventEmitter implements IAGIContext {
     agi_enhanced: '0.0',
     agi_version: '20.3.0'
   };
-  
+
   public debug: boolean = false;
 
   constructor() {
     super();
-    
+
     // Emit variables immediately to simulate AGI initialization
     setTimeout(() => {
       this.emit('variables', this.variables);
@@ -35,13 +35,13 @@ export class MockAGIContext extends EventEmitter implements IAGIContext {
   public async sendCommand(command: string): Promise<AGIResponse> {
     // Always use mock responses
     const mockResponse = AGIMockResponses.getMockResponse(command);
-    
+
     if (mockResponse) {
       // Simulate realistic delay
       if (mockResponse.delay) {
         await new Promise(resolve => setTimeout(resolve, mockResponse.delay));
       }
-      
+
       const response: AGIResponse = {
         code: mockResponse.code,
         result: mockResponse.result,
@@ -49,10 +49,10 @@ export class MockAGIContext extends EventEmitter implements IAGIContext {
         timestamp: Date.now(),
         command: command
       };
-      
+
       return response;
     }
-    
+
     // Default mock response
     return {
       code: 200,
@@ -62,11 +62,20 @@ export class MockAGIContext extends EventEmitter implements IAGIContext {
     };
   }
 
-  public async onEvent(event: string): Promise<any> {
-    return new Promise((resolve) => {
-      this.on(event, (data: any) => {
+  public async onEvent(event: string, timeout?: number): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const eventTimeout = timeout || 30000;
+
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Mock event '${event}' timeout after ${eventTimeout}ms`));
+      }, eventTimeout);
+
+      const eventHandler = (data: any) => {
+        clearTimeout(timeoutId);
         resolve(data);
-      });
+      };
+
+      this.once(event, eventHandler);
     });
   }
 
@@ -268,5 +277,15 @@ export class MockAGIContext extends EventEmitter implements IAGIContext {
 
   public async dial(target: string, timeout: number, params: string): Promise<AGIResponse> {
     return this.exec('Dial', target + ',' + timeout + ',' + params);
+  }
+
+  // Enhanced methods for error recovery
+  public async healthCheck(): Promise<boolean> {
+    // Mock always healthy
+    return Promise.resolve(true);
+  }
+
+  public resetConnection(): void {
+    // Mock - nothing to reset
   }
 }

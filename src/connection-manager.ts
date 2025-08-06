@@ -27,7 +27,7 @@ export class AGIConnectionManager extends EventEmitter {
     super();
     this.maxConnections = maxConnections;
     this.connectionTimeout = connectionTimeout;
-    
+
     // Cleanup inactive connections every minute
     setInterval(() => this.cleanupConnections(), 60000);
   }
@@ -56,13 +56,13 @@ export class AGIConnectionManager extends EventEmitter {
       if (response.timestamp) {
         const responseTime = Date.now() - response.timestamp;
         this.responseTimes.push(responseTime);
-        
+
         // Keep only last 100 response times for average calculation
         if (this.responseTimes.length > 100) {
           this.responseTimes.shift();
         }
-        
-        this.stats.averageResponseTime = 
+
+        this.stats.averageResponseTime =
           this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length;
       }
     });
@@ -93,9 +93,9 @@ export class AGIConnectionManager extends EventEmitter {
 
   public async closeAllConnections(): Promise<void> {
     const closePromises = Array.from(this.connections.values()).map(
-      context => context.close().catch(() => {}) // Ignore close errors
+      context => context.close().catch(() => { }) // Ignore close errors
     );
-    
+
     await Promise.all(closePromises);
     this.connections.clear();
     this.stats.active = 0;
@@ -116,7 +116,7 @@ export class AGIConnectionManager extends EventEmitter {
     for (const id of toRemove) {
       const context = this.connections.get(id);
       if (context) {
-        context.close().catch(() => {}); // This will trigger removeConnection
+        context.close().catch(() => { }); // This will trigger removeConnection
       }
     }
 

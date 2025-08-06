@@ -3,7 +3,6 @@ import { createServer, Server, Socket } from 'net';
 import { AGIServerOptions, AGIHandler } from './types';
 import { AGIContext } from './agi-context';
 import { DevModeManager } from './dev-utils';
-import { MockAGIContext } from './mock-context';
 
 export class AGIServer extends EventEmitter {
   private options: Required<AGIServerOptions>;
@@ -14,7 +13,7 @@ export class AGIServer extends EventEmitter {
     super();
 
     this.options = {
-      port: options.port ?? 3000,
+      port: options.port ?? 8090,
       debug: options.debug ?? false,
       logger: options.logger ?? false,
       host: options.host ?? 'localhost',

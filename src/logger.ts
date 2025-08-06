@@ -39,9 +39,9 @@ export class AGILogger {
     const timestamp = entry.timestamp.toISOString();
     const levelName = LogLevel[entry.level];
     const context = entry.context || this.context || 'AGI';
-    
+
     let message = `[${timestamp}] ${levelName.padEnd(5)} [${context}] ${entry.message}`;
-    
+
     if (entry.data && typeof entry.data === 'object') {
       if (entry.data.error instanceof Error) {
         message += `\n  Error: ${entry.data.error.message}`;
@@ -52,7 +52,7 @@ export class AGILogger {
         message += `\n  Data: ${JSON.stringify(entry.data, null, 2)}`;
       }
     }
-    
+
     return message;
   }
 
@@ -68,7 +68,7 @@ export class AGILogger {
     };
 
     const formatted = this.formatMessage(entry);
-    
+
     switch (level) {
       case LogLevel.ERROR:
         console.error(formatted);
@@ -134,7 +134,7 @@ export class AGILogger {
       'hangup': '📞',
       'close': '🚪'
     };
-    
+
     const icon = icons[event] || '📡';
     this.info(`${icon} ${event}`, data);
   }

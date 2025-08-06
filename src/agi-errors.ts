@@ -2,14 +2,14 @@ export class AGIError extends Error {
   public code?: number;
   public command?: string;
   public details?: Record<string, any>;
-  
+
   constructor(message: string, code?: number, command?: string, details?: Record<string, any>) {
     super(message);
     this.name = 'AGIError';
     this.code = code;
     this.command = command;
     this.details = details;
-    
+
     // Maintain proper stack trace
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -42,13 +42,13 @@ export class AGITimeoutError extends AGIError {
 
   constructor(command: string, timeout: number) {
     const isDevMode = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
-    const suggestion = isDevMode 
+    const suggestion = isDevMode
       ? 'This might be normal in development without Asterisk connection. Consider using a mock or longer timeout.'
       : 'Check Asterisk connection and command validity.';
-      
+
     super(
-      `Command timed out after ${timeout}ms`, 
-      undefined, 
+      `Command timed out after ${timeout}ms`,
+      undefined,
       command,
       { timeout, suggestion, isDevMode }
     );

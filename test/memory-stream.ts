@@ -1,9 +1,8 @@
 import { Readable } from 'stream';
-import { EventEmitter } from 'events';
 
 export class MemoryStream extends Readable {
   private buffer: string = '';
-  
+
   constructor(options?: any) {
     super(options);
     this.setEncoding('utf8');

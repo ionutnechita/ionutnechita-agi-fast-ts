@@ -3,19 +3,19 @@ import { AGIValidator, AUDIO_FORMATS } from './validation';
 import { AGIResponse } from './types';
 
 export class EnhancedAGICommands {
-  
+
   /**
    * Enhanced streamFile with validation and better error handling
    */
   static async streamFile(
-    context: IAGIContext, 
-    filename: string, 
+    context: IAGIContext,
+    filename: string,
     escapeDigits: string = '#'
   ): Promise<AGIResponse> {
     AGIValidator.validateRequired(filename, 'filename');
     AGIValidator.validateFilename(filename, 'filename');
     AGIValidator.validateEscapeDigits(escapeDigits, 'escapeDigits');
-    
+
     return context.sendCommand(`STREAM FILE "${filename}" "${escapeDigits}"`);
   }
 
@@ -58,7 +58,7 @@ export class EnhancedAGICommands {
   ): Promise<AGIResponse> {
     AGIValidator.validateNumber(number, 'number');
     AGIValidator.validateEscapeDigits(escapeDigits, 'escapeDigits');
-    
+
     return context.sendCommand(`SAY NUMBER ${number} "${escapeDigits}"`);
   }
 
@@ -93,7 +93,7 @@ export class EnhancedAGICommands {
 
     // Escape quotes in value
     const escapedValue = value.replace(/"/g, '\\"');
-    
+
     return context.sendCommand(`SET VARIABLE ${name} "${escapedValue}"`);
   }
 
@@ -105,7 +105,7 @@ export class EnhancedAGICommands {
     timeout: number
   ): Promise<AGIResponse> {
     AGIValidator.validateTimeout(timeout, 'timeout');
-    
+
     return context.sendCommand(`WAIT FOR DIGIT ${timeout}`);
   }
 
@@ -149,7 +149,7 @@ export class EnhancedAGICommands {
     context: IAGIContext,
     channel?: string
   ): Promise<{ status: string; description: string; response: AGIResponse }> {
-    const response = channel 
+    const response = channel
       ? await context.sendCommand(`CHANNEL STATUS ${channel}`)
       : await context.sendCommand('CHANNEL STATUS');
 

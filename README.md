@@ -1,14 +1,17 @@
 # AGI Fast TypeScript
 
-Modern TypeScript implementation of AGI (Asterisk Gateway Interface) server, converted from the original [ding-dong](https://github.com/antirek/ding-dong) library.
+Modern, high-performance TypeScript implementation of AGI (Asterisk Gateway Interface) server for telephony applications.
 
 ## Features
 
 - 🔷 **Full TypeScript support** with comprehensive type definitions
-- ⚡ **Modern Promise-based API** 
-- 🔄 **100% API compatible** with ding-dong
-- 🧪 **Complete test coverage** (60+ tests)
-- 📦 **Built with Bun** for fast development and testing
+- ⚡ **Modern Promise-based API** with async/await support
+- 🛡️ **Enhanced error handling** with dead channel detection and automatic recovery
+- 🔄 **Robust connection management** with reconnection logic
+- 🧪 **Complete test coverage** (73+ tests)
+- 📦 **Built with Bun** for lightning-fast development and testing
+- 🎯 **Parameter preparation** with default values and formatters
+- 🌐 **Configurable host binding** for flexible deployment
 
 ## Installation
 
@@ -41,20 +44,21 @@ const handler = (context: AGIContext) => {
     });
 };
 
-const agi = new AGIServer(handler, { port: 3000, debug: true });
+const agi = new AGIServer(handler, { port: 8090, debug: true });
 agi.init();
 ```
 
-### Migration from ding-dong
+### Server Configuration
 
-The API is 100% compatible with ding-dong:
+Configure the server with various options:
 
-```javascript
-// ding-dong (JavaScript)
-const AGIServer = require('ding-dong');
-
-// agi-fast-ts (TypeScript) - same API!
-import AGIServer from './src/index';
+```typescript
+const agi = new AGIServer(handler, {
+  port: 8090,           // Port to bind to (default: 8090)
+  host: '0.0.0.0',      // Host address to bind (default: 'localhost')
+  debug: true,          // Enable debug logging (default: false)
+  logger: true          // Enable structured logging (default: false)
+});
 ```
 
 ## Development Commands
@@ -111,7 +115,7 @@ Add to your `extensions.conf`:
 
 ```
 [default]
-exten => 1000,1,AGI(agi://localhost:3000)
+exten => 1000,1,AGI(agi://localhost:8090)
 ```
 
 ## Events
@@ -164,17 +168,42 @@ Run tests to verify functionality:
 bun test
 ```
 
-All 60+ tests pass, ensuring compatibility with the original ding-dong implementation.
+All 73+ tests pass, ensuring reliable AGI command handling and error recovery.
 
 ## Architecture
 
-- `src/index.ts` - Main exports (generic, like ding-dong)
-- `src/agi-server.ts` - AGI server implementation
-- `src/agi-context.ts` - AGI context with all commands
-- `src/types.ts` - TypeScript type definitions
-- `src/commands.ts` - AGI command definitions
-- `src/example.ts` - Usage example
-- `test/` - Comprehensive test suite
+- `src/index.ts` - Main exports and public API
+- `src/agi-server.ts` - AGI server implementation with connection handling
+- `src/agi-context.ts` - AGI context with all commands and enhanced error handling
+- `src/types.ts` - Complete TypeScript type definitions
+- `src/commands.ts` - All 47 AGI command definitions with parameter rules
+- `src/agi-errors.ts` - Comprehensive error classes
+- `src/logger.ts` - Structured logging system
+- `test/` - Comprehensive test suite with 73+ tests
+- `tts-example.ts` - Text-to-Speech integration example
+
+## Error Handling
+
+Enhanced error handling with specific error types:
+
+```typescript
+import { AGIError, AGITimeoutError, AGICommandError, AGIConnectionError } from './src/agi-errors';
+
+context.streamFile('audio-file')
+  .then((response) => {
+    if (response.isDeadChannel) {
+      console.log('Channel was hung up during playback');
+      // Handle gracefully without throwing error
+    }
+  })
+  .catch((error) => {
+    if (error instanceof AGITimeoutError) {
+      console.log('Command timed out');
+    } else if (error instanceof AGICommandError) {
+      console.log(`AGI command failed: ${error.code}`);
+    }
+  });
+```
 
 ## License
 

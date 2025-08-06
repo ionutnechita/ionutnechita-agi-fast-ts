@@ -1,4 +1,4 @@
-// Export for library usage - generic like ding-dong
+// Export for library usage
 export { AGIServer } from './agi-server';
 export { AGIContext } from './agi-context';
 export { MockAGIContext } from './mock-context';

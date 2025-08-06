@@ -15,10 +15,10 @@ const writeVars = (stream: MemoryStream): void => {
 const createContext = (cb: (ctx: TestAGIContext) => void): void => {
   const stream = new MemoryStream();
   const ctx = new AGIContext(stream as any, { debug: false }) as TestAGIContext;
-  
+
   // Mock the send method to capture sent commands
   ctx.sent = [];
-  (ctx as any).send = function(msg: string, callback?: Function) {
+  (ctx as any).send = function (msg: string, callback?: Function) {
     ctx.sent.push(msg);
     if (callback) {
       (ctx as any).pending = callback;
@@ -127,11 +127,11 @@ describe('Context', () => {
 
         const res1 = await context.exec('test');
         expect(res1.result).toBe('0');
-        
+
         process.nextTick(() => {
           (context as any).testStream.write('200 result=1\n');
         });
-        
+
         const res2 = await context.exec('test 2');
         expect(res2.result).toBe('1');
       });
@@ -480,14 +480,165 @@ describe('Context', () => {
     });
   });
 
+  describe('dead channel handling', () => {
+    it('handles 511 dead channel response gracefully', async () => {
+      // Mock sending a command that will get a dead channel response
+      const commandPromise = context.hangup();
+
+      // Simulate the dead channel response from Asterisk
+      process.nextTick(() => {
+        (context as any).testStream.write('511 Command Not Permitted on a dead channel or intercept routine\n');
+      });
+
+      const result = await commandPromise;
+      expect(result.code).toBe(511);
+      expect(result.result).toContain('Command Not Permitted on a dead channel');
+      expect(result.isDeadChannel).toBe(true);
+    });
+
+    it('handles regular 511 errors as errors', async () => {
+      const commandPromise = context.hangup();
+
+      process.nextTick(() => {
+        (context as any).testStream.write('511 Command Not Permitted\n');
+      });
+
+      try {
+        await commandPromise;
+        expect(false).toBe(true); // Should not reach here
+      } catch (error: any) {
+        expect(error.name).toBe('AGICommandError');
+        expect(error.code).toBe(511);
+      }
+    });
+
+    it('handles other error codes properly', async () => {
+      const commandPromise = context.hangup();
+
+      process.nextTick(() => {
+        (context as any).testStream.write('520 Unknown command\n');
+      });
+
+      try {
+        await commandPromise;
+        expect(false).toBe(true); // Should not reach here
+      } catch (error: any) {
+        expect(error.name).toBe('AGICommandError');
+        expect(error.code).toBe(520);
+      }
+    });
+  });
+
+  describe('response parsing', () => {
+    it('parses standard responses correctly', (done) => {
+      context.on('response', (response: any) => {
+        expect(response.code).toBe(200);
+        expect(response.result).toBe('1');
+        expect(response.value).toBe('timeout');
+        done();
+      });
+
+      process.nextTick(() => {
+        (context as any).testStream.write('200 result=1(timeout)\n');
+      });
+
+      context.noop();
+    });
+
+    it('parses non-result format responses', (done) => {
+      context.on('response', (response: any) => {
+        expect(response.code).toBe(511);
+        expect(response.result).toBe('Command Not Permitted on a dead channel');
+        done();
+      });
+
+      process.nextTick(() => {
+        (context as any).testStream.write('511 Command Not Permitted on a dead channel\n');
+      });
+
+      context.noop();
+    });
+
+    it('parses responses with value in parentheses', (done) => {
+      context.on('response', (response: any) => {
+        expect(response.code).toBe(200);
+        expect(response.result).toBe('0');
+        expect(response.value).toBe('beep');
+        done();
+      });
+
+      process.nextTick(() => {
+        (context as any).testStream.write('200 result=0(beep)\n');
+      });
+
+      context.noop();
+    });
+
+    it('parses responses with direct format like "1(timeout)"', (done) => {
+      context.on('response', (response: any) => {
+        expect(response.code).toBe(200);
+        expect(response.result).toBe('1');
+        expect(response.value).toBe('timeout');
+        done();
+      });
+
+      process.nextTick(() => {
+        (context as any).testStream.write('200 1(timeout)\n');
+      });
+
+      context.noop();
+    });
+  });
+
+  describe('timeout and retry logic', () => {
+    it('handles command timeout in development mode', async () => {
+      // Create context with short timeout for testing
+      const stream = new MemoryStream();
+      const testContext = new AGIContext(stream as any, {
+        debug: false,
+        commandTimeout: 100,  // Very short timeout
+        maxRetries: 0  // No retries for faster test
+      }) as TestAGIContext;
+
+      // Mock the send method
+      testContext.sent = [];
+      (testContext as any).send = function (msg: string, callback?: Function) {
+        testContext.sent.push(msg);
+        if (callback) {
+          (testContext as any).pending = callback;
+        }
+      };
+
+      // Initialize variables
+      writeVars(stream);
+
+      // Wait for variables to be processed
+      await new Promise<void>((resolve) => {
+        testContext.once('variables', () => resolve());
+      });
+
+      try {
+        // This should timeout since we never send a response
+        await testContext.noop();
+        expect(false).toBe(true); // Should not reach here
+      } catch (error: any) {
+        expect(error.name).toBe('AGITimeoutError');
+        expect(error.timeout).toBe(100);
+      }
+    });
+  });
+
   describe('events', () => {
     describe('error', () => {
       it('is emitted when socket emits error', (done) => {
         context.on('error', (err: any) => {
-          expect(err).toBe('test');
+          expect(err.name).toBe('AGIConnectionError');
+          expect(err.message).toContain('Stream error');
+          expect(err.details).toBeDefined();
+          expect(err.details.connectionId).toBeDefined();
           done();
         });
-        (context as any).testStream.emit('error', 'test');
+        (context as any).testStream.emit('error', new Error('test error'));
       });
     });
 
@@ -500,11 +651,48 @@ describe('Context', () => {
       });
     });
   });
+
+  describe('parameter preparation', () => {
+    it('applies default values and preparation functions for streamFile', () => {
+      context.streamFile('test-audio');
+      // Should send: STREAM FILE "test-audio" "#"
+      const sent = context.sent.join('');
+      expect(sent).toBe('STREAM FILE "test-audio" "#"\n');
+    });
+
+    it('properly quotes escape digits in streamFile', () => {
+      context.streamFile('test-audio', '0123');
+      // Should send: STREAM FILE "test-audio" "0123"
+      const sent = context.sent.join('');
+      expect(sent).toBe('STREAM FILE "test-audio" "0123"\n');
+    });
+
+    it('handles commands without parameter rules', () => {
+      context.noop();
+      // Should send: NOOP
+      const sent = context.sent.join('');
+      expect(sent).toBe('NOOP\n');
+    });
+  });
+});
+
+describe('AGIServer configuration options', () => {
+  it('accepts host configuration option', () => {
+    const agiServer = new AGIServer(() => { }, { host: '0.0.0.0', port: 3001 });
+    expect((agiServer as any).options.host).toBe('0.0.0.0');
+    expect((agiServer as any).options.port).toBe(3001);
+  });
+
+  it('uses default host and port when not specified', () => {
+    const agiServer = new AGIServer(() => { });
+    expect((agiServer as any).options.host).toBe('localhost');
+    expect((agiServer as any).options.port).toBe(8090);
+  });
 });
 
 describe('AGIServer#createServer', () => {
   it('returns instance of net.Server', () => {
-    const agiServer = new AGIServer(() => {});
+    const agiServer = new AGIServer(() => { });
     expect((agiServer as any).server).toBeDefined();
   });
 
@@ -516,12 +704,12 @@ describe('AGIServer#createServer', () => {
     }, {
       port: 3002,
     });
-    
+
     // Create a mock socket and invoke the handler directly
     const mockSocket = new MemoryStream();
     const handler = (agiServer as any).handler;
     const context = new AGIContext(mockSocket as any);
-    
+
     handler(context);
     expect(callbackInvoked).toBe(true);
   });

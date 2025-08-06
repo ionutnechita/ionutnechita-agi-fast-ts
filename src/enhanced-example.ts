@@ -1,7 +1,7 @@
-import { 
-  AGIServer, 
-  AGIHandler, 
-  EnhancedAGICommands, 
+import {
+  AGIServer,
+  AGIHandler,
+  EnhancedAGICommands,
   AGIConnectionManager,
   AGIError,
   AGITimeoutError,
@@ -26,7 +26,7 @@ connectionManager.on('connectionError', (id, error) => {
 // Enhanced handler with proper error handling and validation
 const enhancedHandler: AGIHandler = async (context) => {
   const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   try {
     // Add connection to manager
     connectionManager.addConnection(connectionId, context);
@@ -58,21 +58,21 @@ const enhancedHandler: AGIHandler = async (context) => {
         // Say the number back
         const number = parseInt(inputResult.result);
         await EnhancedAGICommands.sayNumber(context, number);
-        
+
         // Set result variable
         await EnhancedAGICommands.setVariable(context, 'USER_INPUT', inputResult.result);
-        
+
         // Record a message
         await EnhancedAGICommands.recordFile(
-          context, 
-          `/tmp/recording_${vars.agi_uniqueid}`, 
-          'wav', 
-          '#', 
+          context,
+          `/tmp/recording_${vars.agi_uniqueid}`,
+          'wav',
+          '#',
           10, // 10 second timeout
-          0, 
+          0,
           true // beep before recording
         );
-        
+
         console.log('Recording completed');
       }
 
@@ -86,10 +86,10 @@ const enhancedHandler: AGIHandler = async (context) => {
     } catch (error) {
       if (error instanceof AGITimeoutError) {
         console.log('Command timed out:', error.message);
-        await EnhancedAGICommands.streamFile(context, 'timeout').catch(() => {});
+        await EnhancedAGICommands.streamFile(context, 'timeout').catch(() => { });
       } else if (error instanceof AGICommandError) {
         console.log('AGI command failed:', error.message, 'Code:', error.code);
-        await EnhancedAGICommands.streamFile(context, 'error').catch(() => {});
+        await EnhancedAGICommands.streamFile(context, 'error').catch(() => { });
       } else if (error instanceof AGIError) {
         console.log('AGI error:', error.message);
       } else {
@@ -108,9 +108,9 @@ const enhancedHandler: AGIHandler = async (context) => {
 
 // Create server with enhanced options
 const agi = new AGIServer(enhancedHandler, {
-  port: 3000,
+  port: 8090,
   debug: true,
-  host: '0.0.0.0'
+  host: '::'
 });
 
 // Server event handlers
@@ -126,13 +126,13 @@ agi.on('close', () => {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Shutting down AGI server...');
-  
+
   // Close all connections
   await connectionManager.closeAllConnections();
-  
+
   // Close server
   await agi.close();
-  
+
   console.log('AGI server shut down gracefully');
   process.exit(0);
 });
@@ -151,7 +151,7 @@ setInterval(() => {
 // Start server
 agi.init();
 
-console.log('Enhanced AGI Server started on port 3000');
+console.log('Enhanced AGI Server started on port 8090');
 console.log('Features enabled:');
 console.log('- Command validation and error handling');
 console.log('- Connection management and pooling');
@@ -160,4 +160,4 @@ console.log('- Enhanced logging and statistics');
 console.log('');
 console.log('Add to Asterisk extensions.conf:');
 console.log('[default]');
-console.log('exten => 1000,1,AGI(agi://localhost:3000)');
+console.log('exten => 1000,1,AGI(agi://localhost:8090)');

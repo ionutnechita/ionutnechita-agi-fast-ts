@@ -1,7 +1,7 @@
 {
   "name": "agi-fast-ts",
   "version": "1.0.0",
-  "description": "Modern TypeScript AGI server for Asterisk",
+  "description": "High-performance TypeScript AGI server for Asterisk with enhanced error handling and comprehensive command support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -10,9 +10,12 @@
     "build": "bun build src/index.ts --outdir dist --target node",
     "type-check": "tsc --noEmit",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "perf": "bun run test/performance-test.ts",
+    "stress": "bun run test/stress-test.ts",
+    "quick": "bun run test/quick-test.ts"
   },
-  "keywords": ["agi", "asterisk", "typescript", "telephony"],
+  "keywords": ["agi", "asterisk", "typescript", "telephony", "voip", "pbx", "communication", "bun"],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {

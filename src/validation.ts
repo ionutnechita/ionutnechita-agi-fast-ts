@@ -9,7 +9,7 @@ export class AGIValidator {
 
   static validateNumber(value: any, paramName: string): number {
     if (typeof value === 'number') return value;
-    
+
     const num = Number(value);
     if (isNaN(num)) {
       throw new AGIValidationError(paramName, value, 'number');
@@ -60,7 +60,7 @@ export class AGIValidator {
 
   static validateEscapeDigits(value: any, paramName: string): string {
     if (value === undefined || value === null) return '#';
-    
+
     const digits = this.validateString(value, paramName);
     const validChars = /^[0-9#*]+$/;
     if (!validChars.test(digits)) {
